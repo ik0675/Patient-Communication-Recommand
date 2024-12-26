@@ -8,9 +8,9 @@ from collections import deque
 # Step 1: Define Environment
 class PatientEngagementEnv:
     def __init__(self):
-        # States: [Visits, Missed Appointments, Age Group, Last Engagement Response]
+        # States: [Visits, Missed Appointments, Age Group, Last Engagement Response (pos. vs neg.)]
         self.state_space = [0, 0, 0, 0]  # Example: [2 visits, 1 missed, middle-aged, positive response]
-        self.action_space = [0, 1, 2, 3]  # Actions: [No engagement, Email, SMS, Incentive]
+        self.action_space = [0, 1, 2, 3]  # Actions: [No engagement, Email, SMS, Incentive (e.g. gift cards, discount coupons, free services)]
         self.max_visits = 10
         self.max_missed = 5
 
@@ -35,7 +35,8 @@ class PatientEngagementEnv:
             response = np.random.choice([0, 1], p=[0.3, 0.7])
         else:  # No engagement
             response = 0
-
+        
+        # Came vs. Not came
         if response == 1:
             visits += 1
             reward = 1
@@ -51,6 +52,11 @@ class PatientEngagementEnv:
         return np.array(self.state_space), reward, done
 
 # Step 2: Define DQN Model
+# A Neural Network predicts the Q-values (expected future rewards) for each action based on the current state.
+# Architecture:
+#   Input: Patient state
+#   Hidden Layers: 2 layers with 64 neurons each, using ReLU activation.
+#   Output: Q-values for each action (4 possible actions).
 class DQN(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(DQN, self).__init__()
@@ -81,6 +87,8 @@ def train_dqn():
 
     episodes = 1000
     gamma = 0.99  # Discount factor
+    # Epsilon is the probability of taking a random action rather than choosing the action that maximizes the Q-value predicted by the model.
+    # Typically starts high (e.g., 1.0, meaning complete exploration at the start) and decreases over time.
     epsilon = 1.0  # Exploration rate
     epsilon_decay = 0.995
     epsilon_min = 0.1
@@ -108,6 +116,8 @@ def train_dqn():
             total_reward += reward
 
             # Train model
+            # Bellman equation: 
+            #   target_q_value = reward + gamma * max(next_q_value) * (1 - done)
             if len(replay_buffer) >= batch_size:
                 minibatch = random.sample(replay_buffer, batch_size)
                 states, actions, rewards, next_states, dones = zip(*minibatch)
